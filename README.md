@@ -1,7 +1,7 @@
 Manifold
 ========
 
-A package to maniuplate manifolds, for Torch7.
+A package to manipulate manifolds, for Torch7.
 
 Install
 -------
