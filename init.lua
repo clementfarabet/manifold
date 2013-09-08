@@ -74,6 +74,10 @@ local removeDuplicates = function(vectors)
 end
 
 -- LLE:
+--
+-- Reference: Sam Roweis & Lawrence Saul, "Nonlinear dimensionality reduction by locally linear embedding", Dec 22, 2000.
+-- Original Code (Matlab): http://www.cs.nyu.edu/~roweis/lle/code.html
+-- 
 local lle = function(vectors,opts)
    -- args:
    opts = opts or {}
