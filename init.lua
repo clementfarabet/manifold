@@ -135,13 +135,21 @@ local lle = function(vectors,opts)
          local jj = indexes[i]
          M[{ {ii},{jj} }]:add(-w[i])
          M[{ {jj},{ii} }]:add(-w[i])
-         M[{ {jj},{indexes[i]} }]:add( w[i]^2 )
+         for j = 1,indexes:size(1) do
+            M[{{jj},{indexes[j]}}]:add(w[i]*w[j])
+         end
       end
    end
 
    -- embedding:
-   local vals,vectors = torch.symeig(M)
-   local res = vectors[{ {2,2+d-1},{} }]:clone():t()
+   local vals,vectors = torch.eig(M, 'V')
+   local n = M:size(1)
+   vals = vals[{{},1}]
+   vals,idx = torch.sort(vals)
+   local res = torch.DoubleTensor(vectors:size(1), d) 
+   for i=1,d do
+      res[{{},i}] = vectors[{ {},{idx[i+1]} }]:clone()
+   end
    res:mul(math.sqrt(N))
 
    -- return:
