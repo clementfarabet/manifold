@@ -1,5 +1,7 @@
+-- This is the Swissroll test...
 require 'torch'
-mani = require 'manifold_local'
+mani = require 'manifold'
+require 'gfx.go'
 
 local N = 2000
 local K = 12
@@ -11,13 +13,18 @@ local X = torch.DoubleTensor(3, N)
 X[1] = torch.cmul(tt, torch.cos(tt))
 X[2] = height
 X[3] = torch.cmul(tt, torch.sin(tt))
---X[1] = torch.div(torch.linspace(1, N, N), N) --torch.cmul(tt, torch.cos(tt))
---X[2] = torch.div(torch.linspace(1, N, N), N) --height
---X[3] = torch.div(torch.linspace(1, N, N), N) --torch.cmul(tt, torch.sin(tt))
 X = X:t()
-local opts = {}
-opts.dim = d
-opts.neighbors = K
-opts.tol = 1e-3
 
-Y = mani.embedding.lle(X, opts)
+Y = mani.embedding.lle(X, {
+   dim = d,
+   neighbors = K,
+   tol = 1e-3
+})
+
+gfx.chart({values=Y, key='LLE'}, {chart='scatter', width=1024, height=800})
+
+Y = mani.embedding.random(X, {
+   dim = 2,
+})
+
+gfx.chart({values=Y, key='Random'}, {chart='scatter', width=1024, height=800})
