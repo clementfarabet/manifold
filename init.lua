@@ -64,7 +64,7 @@ local removeDuplicates = function(vectors)
    end
 
    -- keep singles:
-   local matrix = torch.FloatTensor(#oks,D)
+   local matrix = torch.Tensor(#oks,D)
    for i,ok in ipairs(oks) do
       matrix[i] = X[ok]
    end
