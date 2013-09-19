@@ -146,7 +146,7 @@ local lle = function(vectors,opts)
    local n = M:size(1)
    vals = vals[{{},1}]
    vals,idx = torch.sort(vals)
-   local res = torch.DoubleTensor(vectors:size(1), d) 
+   local res = torch.Tensor(vectors:size(1), d) 
    for i=1,d do
       res[{{},i}] = vectors[{ {},{idx[i+1]} }]:clone()
    end
