@@ -42,6 +42,21 @@ local neighbors = function(vectors)
    -- sort:
    local _,index = distance:sort(2)
 
+   -- insure identity for 1st index:
+   for i = 1,(#distance)[1] do
+      local id1 = index[{i,1}]
+      if id1 ~= i then
+         for j = 2,(#distance)[1] do
+            local id2 = index[{i,j}]
+            if id2 == i then
+               index[{i,j}] = id1
+               index[{i,1}] = id2
+               break
+            end
+         end
+      end
+   end
+
    -- return index
    return index
 end
