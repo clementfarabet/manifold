@@ -54,7 +54,7 @@ local neighbors = function(vectors,norm)
    local distance = distances(X,norm)
    
    -- sort:
-   local _,index = distance:sort(2)
+   local dists,index = distance:sort(2)
 
    -- insure identity for 1st index:
    for i = 1,(#distance)[1] do
@@ -72,7 +72,7 @@ local neighbors = function(vectors,norm)
    end
 
    -- return index
-   return index
+   return index,dists
 end
 
 -- Remove duplicates:
