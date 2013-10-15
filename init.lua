@@ -15,29 +15,43 @@ local random = function(vectors,opts)
 end
 
 -- Compute distances:
-local distances = function(vectors)
+local distances = function(vectors,norm)
    -- args:
    local X = vectors
+   local norm = norm or 2
    local N,D = X:size(1),X:size(2)
 
    -- compute L2 distances:
-   local X2 = X:clone():cmul(X):sum(2)
-   local distances = (X*X:t()*-2) + X2:expand(N,N) + X2:reshape(1,N):expand(N,N)
-   distances:sqrt()
+   local distances
+   if norm == 2 then
+      local X2 = X:clone():cmul(X):sum(2)
+      distances = (X*X:t()*-2) + X2:expand(N,N) + X2:reshape(1,N):expand(N,N)
+      distances:abs():sqrt()
+   elseif norm == 1 then
+      distances = X.new(N,N)
+      local tmp = X.new(N,D)
+      for i = 1,N do
+         local x = X[i]:clone():reshape(1,D):expand(N,D)
+         tmp[{}] = X
+         local dist = tmp:add(-1,x):abs():sum(2):squeeze()
+         distances[i] = dist
+      end
+   else
+      error('norm must be 1 or 2')
+   end
    
    -- return dists
    return distances
 end
 
 -- Compute neighbors:
-local neighbors = function(vectors)
+local neighbors = function(vectors,norm)
    -- args:
    local X = vectors
    local N,D = X:size(1),X:size(2)
 
    -- compute L2 distances:
-   local X2 = X:clone():cmul(X):sum(2)
-   local distance = (X*X:t()*-2) + X2:expand(N,N) + X2:reshape(1,N):expand(N,N)
+   local distance = distances(X,norm)
    
    -- sort:
    local _,index = distance:sort(2)
