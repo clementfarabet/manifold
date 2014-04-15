@@ -22,5 +22,13 @@ build = {
    type = "builtin",
    modules = {
        ['manifold.init'] = 'init.lua',
+       ['manifold.tsne'] = 'tsne.lua',
+       ['manifold.lle'] = 'lle.lua',
+   },
+   install = {
+       bin = {
+           'tSNE_maci',
+           'tSNE_linux',
+       }
    }
 }
