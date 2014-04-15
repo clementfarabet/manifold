@@ -28,4 +28,5 @@ ts = m.removeDuplicates(t) -- remove duplicates from dataset
 -- embeddings:
 p = m.embedding.random(t, {dim=2})  -- embed samples into a 2D plane, using random projections
 p = m.embedding.lle(t, {dim=2, neighbors=3})  -- embed samples into a 2D plane, using 3 neighbor (LLE)
+p = m.embedding.tsne(t, {dim=2, perplexity=30})  -- embed samples into a 2D plane, using tSNE
 ```

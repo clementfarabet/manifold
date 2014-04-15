@@ -6,7 +6,7 @@ local ffi = require 'ffi'
 local function tsne(data, opts)
    -- options:
    opts = opts or {}
-   local ndims = opts.ndims or 2
+   local ndims = opts.dim or 2
    local perplexity = opts.perplexity or 30
    local landmarks = opts.landmarks or 1
    local pca = opts.pca
