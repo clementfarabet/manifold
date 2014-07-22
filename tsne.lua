@@ -67,7 +67,7 @@ local function tsne(data, opts)
       return
    else
       -- data:
-      odata = torch.zeros(n,nd)
+      odata = torch.DoubleTensor(n,nd):zero()
       local rp = odata:data()
       local data_double = ffi.cast('double *', data_next)
       ffi.copy(rp, data_double, n*nd*8)
@@ -82,7 +82,7 @@ local function tsne(data, opts)
       lm:add(1)
       
       -- next vector:
-      costs = torch.zeros(n)
+      costs = torch.DoubleTensor(n):zero()
       local rp = costs:data()
       local data_double = ffi.cast('double *', data_next)
       ffi.copy(rp, data_double, n*8)
