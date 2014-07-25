@@ -121,10 +121,11 @@ local function run_bhtsne(data, opts)
 
    -- exec:
    local cmd
+   -- TODO: we should prepend the exact install path to thee binaries
    if ffi.os == 'OSX' then
-      cmd = './bhtsne_maci'
+      cmd = 'bhtsne_maci'
    else
-      cmd = './bhtsne_linux'
+      cmd = 'bhtsne_linux'
    end
 
    -- run:
