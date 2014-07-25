@@ -9,12 +9,12 @@ local function x2p(data, perplexity, tol)
   local y_buf = torch.Tensor(N, D)
   local n_buf = torch.Tensor(N, 1)
   local row_P = torch.Tensor(N, 1)
-  P = torch.Tensor(N, N)
+  local P = torch.Tensor(N, N)
 
   -- compute pairwise distance matrix:
   torch.cmul(y_buf, data, data)
   torch.sum(n_buf, y_buf, 2)
-  cp_n_buf = torch.expand(n_buf, N, N)
+  local cp_n_buf = torch.expand(n_buf, N, N)
   torch.mm(buf, data, data:t())
   buf:mul(-2):add(cp_n_buf):add(cp_n_buf:t())
 
@@ -203,6 +203,7 @@ local function tsne(data, opts)
   -- first do PCA:
   local N = data:size(1)
   local D = data:size(2)
+  local lambda,W
   if pca_dims then
     require 'unsup'
     print('Performing preprocessing using PCA...')
@@ -213,7 +214,7 @@ local function tsne(data, opts)
 
   -- run Barnes-Hut binary (when requested):
   if use_bh == true then
-    mapped_x = run_bhtsne(data, opts)
+    local mapped_x = run_bhtsne(data, opts)
     return mapped_x
   end
 
@@ -252,7 +253,7 @@ local function tsne(data, opts)
   P:mul(4)
 
   -- initialize the solution, gradient and momentum storage, and gain:
-  y_data = torch.randn(N, no_dims):mul(0.0001)
+  local y_data = torch.randn(N, no_dims):mul(0.0001)
   local y_grad = torch.Tensor(N, no_dims)
   local y_incs = torch.zeros(N, no_dims)
   local y_gain = torch.ones(N, no_dims)
@@ -264,7 +265,7 @@ local function tsne(data, opts)
     -- compute the joint probability that i and j are neighbors in the map:
     torch.cmul(y_buf, y_data, y_data)
     torch.sum(n_buf, y_buf, 2) 
-    cp_n_buf = torch.expand(n_buf, N, N)
+    local cp_n_buf = torch.expand(n_buf, N, N)
     torch.mm(num, y_data, y_data:t())
     num:mul(-2)
     num:add(cp_n_buf):add(cp_n_buf:t()):add(1)
