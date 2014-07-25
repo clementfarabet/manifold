@@ -30,3 +30,14 @@ p = m.embedding.random(t, {dim=2})  -- embed samples into a 2D plane, using rand
 p = m.embedding.lle(t, {dim=2, neighbors=3})  -- embed samples into a 2D plane, using 3 neighbor (LLE)
 p = m.embedding.tsne(t, {dim=2, perplexity=30})  -- embed samples into a 2D plane, using tSNE
 ```
+
+Demos
+-----
+
+Demos require [gfx.js](https://github.com/clementfarabet/gfx.js) to be installed.
+
+```sh
+cd demos
+th -x demo_tsne.lua
+# (the -x flag starts the gfx server)
+```
