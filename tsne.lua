@@ -186,7 +186,7 @@ end
 
 
 -- implementation of t-SNE in Torch:
-function tsne(data, opts)
+local function tsne(data, opts)
 
   -- options:
   opts = opts or {}
@@ -310,3 +310,6 @@ function tsne(data, opts)
   -- return output data:
   return y_data
 end
+
+-- return function:
+return tsne

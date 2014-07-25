@@ -34,7 +34,6 @@ local function demo_tsne()
 
   -- amount of data to use for test:
   local N = 5000
-  require 'tsne'
 
   -- load subset of MNIST test data:
   mnist = require 'mnist'
