@@ -1,7 +1,7 @@
 -- This is the Swissroll test...
 require 'torch'
 mani = require 'manifold'
-require 'gfx.go'
+require 'gfx.js'
 
 local N = 2000
 local K = 12

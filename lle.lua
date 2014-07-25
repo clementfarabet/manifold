@@ -11,11 +11,14 @@ local lle = function(vectors,opts)
    local dtol = opts.tol or 2
    local X = vectors
 
+   -- dependencies:
+   local pkg = require 'manifold'
+
    -- dims:
    local N,D = X:size(1),X:size(2)
    
    -- get nearest neighbors:
-   local neighbors = neighbors(X)
+   local neighbors = pkg.neighbors(X)
    assert(torch.dist(neighbors[{{},1}]:float(), torch.range(1,N):float()) == 0, 'LLE cannot deal with duplicates')
    local neighborhood = neighbors[{ {},{2,2+K-1} }]
    
