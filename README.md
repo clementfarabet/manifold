@@ -7,7 +7,7 @@ Install
 -------
 
 ```sh
-torch-rocks install https://raw.github.com/clementfarabet/manifold/master/manifold-scm-0.rockspec
+luarocks install manifold
 ```
 
 Use
