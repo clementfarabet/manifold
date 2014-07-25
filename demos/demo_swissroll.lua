@@ -15,6 +15,14 @@ X[2] = height
 X[3] = torch.cmul(tt, torch.sin(tt))
 X = X:t()
 
+print('random embedding...')
+Y = mani.embedding.random(X, {
+   dim = 2,
+})
+
+gfx.chart({values=Y, key='Random'}, {chart='scatter', width=1024, height=800})
+
+print('LLE embedding...')
 Y = mani.embedding.lle(X, {
    dim = d,
    neighbors = K,
@@ -23,8 +31,9 @@ Y = mani.embedding.lle(X, {
 
 gfx.chart({values=Y, key='LLE'}, {chart='scatter', width=1024, height=800})
 
-Y = mani.embedding.random(X, {
+print('tSNE embedding...')
+Y = mani.embedding.tsne(X, {
    dim = 2,
 })
 
-gfx.chart({values=Y, key='Random'}, {chart='scatter', width=1024, height=800})
+gfx.chart({values=Y, key='tSNE'}, {chart='scatter', width=1024, height=800})
