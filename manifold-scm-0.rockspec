@@ -17,6 +17,7 @@ A package to manipulate manifolds.
 dependencies = {
    "torch >= 7.0",
    "unsup",
+   "mnist",
 }
 
 build = {
