@@ -193,8 +193,8 @@ local function tsne(data, opts)
   opts = opts or {}
   local no_dims    = opts.ndims      or 2
   local perplexity = opts.perplexity or 30
-  local pca_dims   = opts.pca        or 100
   local use_bh     = opts.use_bh     or false
+  local pca_dims   = opts.pca        or (use_bh and 100) or nil
 
   -- normalize input data:
   data:add(-data:min())
