@@ -27,8 +27,8 @@ build = {
    },
    install = {
        bin = {
-           'tSNE_maci',
-           'tSNE_linux',
+           'bhtsne_maci',
+           'bhtsne_linux',
        }
    }
 }
