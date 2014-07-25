@@ -1,3 +1,5 @@
+manifold = require 'manifold'
+
 -- function to show an MNIST 2D group scatter plot:
 local function show_map(mapped_x, labels)
 
@@ -49,14 +51,14 @@ local function demo_tsne()
   -- run t-SNE:
   opts = {ndims = 2, perplexity = 30, pca = 100, use_bh = false}
   local timer = torch.Timer()
-  mapped_x1 = tsne(x, opts)
+  mapped_x1 = manifold.embedding.tsne(x, opts)
   print('Successfully performed t-SNE in ' .. timer:time().real .. ' seconds.')
   show_map(mapped_x1, labels)
 
   -- run Barnes-Hut t-SNE:
   opts = {ndims = 2, perplexity = 30, pca = 100, use_bh = true, theta = 0.5}
   timer:reset()
-  mapped_x2 = tsne(x, opts)
+  mapped_x2 = manifold.embedding.tsne(x, opts)
   print('Successfully performed Barnes Hut t-SNE in ' .. timer:time().real .. ' seconds.')
   show_map(mapped_x2, labels)
 end
