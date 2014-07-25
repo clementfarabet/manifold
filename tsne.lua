@@ -1,34 +1,117 @@
--- Deps:
-require 'unsup'
-local ffi = require 'ffi'
+-- implementation of P-value computations:
+local function x2p(data, perplexity, tol)
 
--- Wrapper to the tSNE binaries
-local function tsne(data, opts)
-   -- options:
+  -- allocate all the memory we need:
+  local eps = 1e-10
+  local N = data:size(1)
+  local D = data:size(2)
+  local buf   = torch.Tensor(N, N)
+  local y_buf = torch.Tensor(N, D)
+  local n_buf = torch.Tensor(N, 1)
+  local row_P = torch.Tensor(N, 1)
+  P = torch.Tensor(N, N)
+
+  -- compute pairwise distance matrix:
+  torch.cmul(y_buf, data, data)
+  torch.sum(n_buf, y_buf, 2)
+  cp_n_buf = torch.expand(n_buf, N, N)
+  torch.mm(buf, data, data:t())
+  buf:mul(-2):add(cp_n_buf):add(cp_n_buf:t())
+
+  -- loop over all instances:
+  for n = 1,N do
+  
+    -- set minimum and maximum values for precision:
+    local beta = 1
+    local betamin = -math.huge
+    local betamax =  math.huge
+
+    -- compute the Gaussian kernel and corresponding perplexity: (should put this in a local function!)
+    row_P:copy(buf[n])
+    n_buf:copy(buf[n])
+    row_P:mul(-beta):exp()
+    row_P[n] = 0
+    local sum_P = row_P:sum()
+    local Hi = math.log(sum_P) + beta / (sum_P + eps) * n_buf:cmul(row_P):sum()
+    row_P:div(sum_P)
+
+    -- evaluate whether the perplexity is within tolerance
+    local H_diff = Hi - math.log(perplexity)
+    local tries = 0
+    while math.abs(H_diff) > tol and tries < 50 do
+
+      -- if not, increase of decrease precision:
+      if H_diff > 0 then
+        betamin = beta
+        if betamax == math.huge then
+          beta = beta * 2
+        else
+          beta = (beta + betamax) / 2
+        end
+      else
+        betamax = beta
+        if betamin == -math.huge then
+          beta = beta / 2
+        else
+          beta = (beta + betamin) / 2
+        end
+      end
+
+      -- recompute row of P and correponding perplexity:
+      row_P:copy(buf[n])
+      n_buf:copy(buf[n])
+      row_P:mul(-beta):exp()
+      row_P[n] = 0
+      sum_P = row_P:sum()
+      Hi = math.log(sum_P) + beta / (sum_P + eps) * n_buf:cmul(row_P):sum()
+      row_P:div(sum_P)
+      H_diff = Hi - math.log(perplexity)
+      tries = tries + 1
+    end
+
+    -- set the final row of P:
+    P:narrow(1, n, 1):copy(row_P)
+  end
+
+  -- return output:
+  return P
+end
+
+
+-- implementation of sign function:
+local function sign(x)
+  if x < 0 then
+    return -1
+  else
+    return 1
+  end
+end
+
+
+-- function that runs the Barnes-Hut SNE executable:
+local function run_bhtsne(data, opts)
+
+   -- default values:
+   local ffi = require 'ffi'
    opts = opts or {}
-   local ndims = opts.dim or 2
+   local no_dims    = opts.ndims      or 2
    local perplexity = opts.perplexity or 30
-   local landmarks = opts.landmarks or 1
-   local pca = opts.pca
-
-   -- first do PCA, and keep first N dimensions:
-   if pca then
-      data = unsup.pca_whiten(data)
-      data = data[{ {},{1,math.min(pca, data:size(2))} }]
-   end
+   local theta      = opts.theta      or 0.5
 
    -- pack data:
    local raw = data:data()
    local nchars = data:nElement()*8 + 2*8 + 3*4
    local data_char = ffi.new('char[?]', nchars)
    local data_int = ffi.cast('int *', data_char)
-   local data_double = ffi.cast('double *', data_char + 3*4)
+   local data_double = ffi.cast('double *', data_char + 2*4)
+   local data_int2 = ffi.cast('int *', data_char + 2*4 + 2*8)
+   local data_double2 = ffi.cast('double *', data_char + 3*4 + 2*8)
    data_int[0] = data:size(1)
    data_int[1] = data:size(2)
-   data_int[2] = ndims
-   data_double[0] = ffi.cast('double',perplexity)
-   data_double[1] = ffi.cast('double',landmarks)
-   ffi.copy(data_double+2, raw, data:nElement() * 8)
+   data_double[0] = ffi.cast('double',theta)
+   data_double[1] = ffi.cast('double',perplexity)
+   data_int2[0] = no_dims
+   ffi.copy(data_double2, raw, data:nElement() * 8)
 
    -- pack argument
    local packed = ffi.string(data_char, nchars)
@@ -39,9 +122,9 @@ local function tsne(data, opts)
    -- exec:
    local cmd
    if ffi.os == 'OSX' then
-      cmd = 'tSNE_maci'
+      cmd = './bhtsne_maci'
    else
-      cmd = 'tSNE_linux'
+      cmd = './bhtsne_linux'
    end
 
    -- run:
@@ -97,31 +180,133 @@ local function tsne(data, opts)
       odata = odatar
    end
 
-   -- return output data
-   return odata,lm,costs
+  -- return mapped data:
+  return odata
 end
 
--- Test:
-local function test()
-   -- sample data from two high-dim gaussians:
-   local t = torch.zeros(1000,10)
-   t[{ {1,500} }]:normal(1000,0.001)
-   t[{ {501,750} }]:normal(-1000,0.001)
-   t[{ {751,1000},{1,5} }]:normal(-1000,0.001)
-   t[{ {751,1000},{5,10} }]:normal(1000,0.001)
 
-   -- tSNE:
-   local res,lm = tsne(t, {pca=30})
+-- implementation of t-SNE in Torch:
+function tsne(data, opts)
 
-   -- render result, using two colors:
-   require 'gfx.js'
-   gfx.chart({
-      {values = res[{ {1,500} }]},
-      {values = res[{ {501,750} }]},
-      {values = res[{ {751,1000} }]},
-   }, 
-   {chart='scatter', width=900, height=700})
+  -- options:
+  opts = opts or {}
+  local no_dims    = opts.ndims      or 2
+  local perplexity = opts.perplexity or 30
+  local pca_dims   = opts.pca        or 100
+  local use_bh     = opts.use_bh     or false
+
+  -- normalize input data:
+  data:add(-data:min())
+  data:div( data:max())
+
+  -- first do PCA:
+  local N = data:size(1)
+  local D = data:size(2)
+  if pca_dims then
+    require 'unsup'
+    print('Performing preprocessing using PCA...')
+    lambda,W = unsup.pca(data)
+    W = W:narrow(2, 1, math.min(pca_dims, D))
+    data = torch.mm(data, W)
+  end
+
+  -- run Barnes-Hut binary (when requested):
+  if use_bh == true then
+    mapped_x = run_bhtsne(data, opts)
+    return mapped_x
+  end
+
+  -- initialize some variables for the optimization:
+  local momentum = 0.5
+  local final_momentum = 0.8
+  local mom_switch_iter = 250
+  local stop_lying_iter = 100
+  local max_iter = 1000
+  local epsilon = 500
+  local min_gain = 0.01
+  local eps = 1e-12
+
+  -- allocate all the memory we need:
+  local buf   = torch.Tensor(N, N)
+  local num   = torch.Tensor(N, N)
+  local Q     = torch.Tensor(N, N)
+  local y_buf = torch.Tensor(N, no_dims)
+  local n_buf = torch.Tensor(N, 1)
+
+  -- compute (asymmetric) P-values:
+  print('Computing P-values...')
+  local tol = 1e-5
+  local P = x2p(data, perplexity, tol)
+
+  -- symmetrize P-values:
+  P:add(P:t())
+  P:div(torch.sum(P))
+
+  -- compute constant term in KL divergence:
+  buf:copy(P)
+  buf:add(eps):log()
+  local H_P = torch.sum(buf:cmul(P))
+
+  -- lie about the P-values:
+  P:mul(4)
+
+  -- initialize the solution, gradient and momentum storage, and gain:
+  y_data = torch.randn(N, no_dims):mul(0.0001)
+  local y_grad = torch.Tensor(N, no_dims)
+  local y_incs = torch.zeros(N, no_dims)
+  local y_gain = torch.ones(N, no_dims)
+ 
+  -- main for-loop:
+  print('Running t-SNE...')
+  for iter = 1,max_iter do
+    
+    -- compute the joint probability that i and j are neighbors in the map:
+    torch.cmul(y_buf, y_data, y_data)
+    torch.sum(n_buf, y_buf, 2) 
+    cp_n_buf = torch.expand(n_buf, N, N)
+    torch.mm(num, y_data, y_data:t())
+    num:mul(-2)
+    num:add(cp_n_buf):add(cp_n_buf:t()):add(1)
+    buf:fill(1)
+    torch.cdiv(num, buf, num)
+    for n = 1,N do
+      num[n][n] = 0
+    end
+    torch.div(Q, num, num:sum())
+
+    -- compute the gradients:
+    buf:copy(P)
+    buf:add(-1, Q)
+    buf:cmul(num)
+    torch.sum(n_buf, buf, 2)
+    num:fill(0)
+    for n = 1,N do
+      num[n][n] = n_buf[n]
+    end
+    torch.mm(y_grad, num:add(-1, buf), y_data)
+    y_grad:mul(4)
+
+    -- update the solution:
+    y_gain:map2(y_grad, y_incs, function(gain, grad, incs) if sign(grad) ~= sign(incs) then return (gain + 0.2) else return (gain * 0.8) end end)
+    y_incs:mul(momentum):add(y_grad:cmul(y_gain):mul(-epsilon))
+    y_data:add(y_incs)
+
+    -- update learning parameters if necessary:
+    if iter == mom_switch_iter then
+      momentum = final_momentum
+    end
+    if iter == stop_lying_iter then
+      P:div(4)
+    end
+
+    -- print out progress:
+    if math.fmod(iter, 10) == 0 then
+      Q:add(eps):log()
+      local kl = H_P - torch.sum(Q:cmul(P))
+      print('Iteration ' .. iter .. ': KL divergence is ' .. kl)
+    end
+  end
+
+  -- return output data:
+  return y_data
 end
-
--- Return func:
-return tsne
