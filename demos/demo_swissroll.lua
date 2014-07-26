@@ -33,7 +33,7 @@ gfx.chart({values=Y, key='LLE'}, {chart='scatter', width=1024, height=800})
 
 print('Laplacian Eigenmaps embedding...')
 local K = 60
-Y = laplacian_eigenmaps(X, {
+Y = mani.embedding.laplacian_eigenmaps(X, {
    dim = 2,neighbors = K,sigma = sigma,normalized = false
 })
 
