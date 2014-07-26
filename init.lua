@@ -108,7 +108,7 @@ return {
       random = random,
       lle = require 'manifold.lle',
       tsne = require 'manifold.tsne',
-      laplacian_eigenmaps = require 'manifold.laplacian_eigenmaps',
+      --[[ laplacian_eigenmaps = require 'manifold.laplacian_eigenmaps', ]]--
    },
    removeDuplicates = removeDuplicates,
    neighbors = neighbors,
