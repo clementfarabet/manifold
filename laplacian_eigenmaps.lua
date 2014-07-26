@@ -1,5 +1,5 @@
 -- Implementation of Laplacian Eigenmaps: 
-laplacian_eigenmaps = function(vectors,opts)
+local laplacian_eigenmaps = function(vectors,opts)
 
    -- args:
    opts = opts or {}
