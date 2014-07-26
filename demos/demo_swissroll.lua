@@ -5,14 +5,14 @@ require 'gfx.js'
 
 local N = 2000
 local K = 12
+local sigma = 7
 local d = 2
 
-local tt = torch.mul(torch.add(torch.mul(torch.rand(1, N), 2), 1), (3*3.1416/2))
-local height = torch.mul(torch.rand(1, N), 21)
+local tt = torch.mul(torch.sqrt(torch.rand(1, N)), 4*3.1416)
 local X = torch.DoubleTensor(3, N)
-X[1] = torch.cmul(tt, torch.cos(tt))
-X[2] = height
-X[3] = torch.cmul(tt, torch.sin(tt))
+X[1] = torch.cmul(torch.add(tt, 0.1), torch.cos(tt))
+X[2] = torch.cmul(torch.add(tt, 0.1), torch.sin(tt))
+X[3] = torch.mul(torch.rand(1, N), 8*3.1416)
 X = X:t()
 
 print('random embedding...')
@@ -31,9 +31,10 @@ Y = mani.embedding.lle(X, {
 
 gfx.chart({values=Y, key='LLE'}, {chart='scatter', width=1024, height=800})
 
-print('tSNE embedding...')
-Y = mani.embedding.tsne(X, {
-   dim = 2,
+print('Laplacian Eigenmaps embedding...')
+local K = 60
+Y = laplacian_eigenmaps(X, {
+   dim = 2,neighbors = K,sigma = sigma,normalized = false
 })
 
-gfx.chart({values=Y, key='tSNE'}, {chart='scatter', width=1024, height=800})
+gfx.chart({values=Y, key='Laplacian Eigenmaps'}, {chart='scatter', width=1024, height=800})

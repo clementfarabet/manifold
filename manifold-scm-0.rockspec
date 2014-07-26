@@ -26,6 +26,7 @@ build = {
        ['manifold.init'] = 'init.lua',
        ['manifold.tsne'] = 'tsne.lua',
        ['manifold.lle'] = 'lle.lua',
+       ['manifold.laplacian_eigenmaps'] = 'laplacian_eigenmaps.lua'
    },
    install = {
        bin = {
