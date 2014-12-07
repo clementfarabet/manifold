@@ -5,19 +5,18 @@ local function x2p(data, perplexity, tol)
   -- allocate all the memory we need:
   local eps = 1e-10
   local N = data:size(1)
-  local D = data:size(2)
-  local buf   = torch.Tensor(N, N)
-  local y_buf = torch.Tensor(N, D)
-  local n_buf = torch.Tensor(N, 1)
-  local row_P = torch.Tensor(N, 1)
-  local P = torch.Tensor(N, N)
+  local D     = torch.DoubleTensor(N, N)
+  local y_buf = torch.DoubleTensor(data:size())
+  local row_D = torch.DoubleTensor(N, 1)
+  local row_P = torch.DoubleTensor(N, 1)
+  local P = torch.DoubleTensor(N, N)
 
   -- compute pairwise distance matrix:
   torch.cmul(y_buf, data, data)
-  torch.sum(n_buf, y_buf, 2)
-  local cp_n_buf = torch.expand(n_buf, N, N)
-  torch.mm(buf, data, data:t())
-  buf:mul(-2):add(cp_n_buf):add(cp_n_buf:t())
+  torch.sum(row_D, y_buf, 2)
+  local row_Dc = torch.expand(row_D, N, N)
+  torch.mm(D, data, data:t())
+  D:mul(-2):add(row_Dc):add(row_Dc:t())
 
   -- loop over all instances:
   for n = 1,N do
@@ -28,13 +27,13 @@ local function x2p(data, perplexity, tol)
     local betamax =  math.huge
 
     -- compute the Gaussian kernel and corresponding perplexity: (should put this in a local function!)
-    row_P:copy(buf[n])
-    n_buf:copy(buf[n])
+    row_P:copy(D[n])
+    row_D:copy(D[n])
     row_P:mul(-beta):exp()
-    row_P[n] = 0
-    local sum_P = row_P:sum()
-    local Hi = math.log(sum_P) + beta / (sum_P + eps) * n_buf:cmul(row_P):sum()
-    row_P:div(sum_P)
+    row_P[n][1] = 0
+    local sum_P  = row_P:sum()
+    local sum_DP = row_D:cmul(row_P):sum()
+    local Hi = math.log(sum_P) + beta * sum_DP / sum_P
 
     -- evaluate whether the perplexity is within tolerance
     local H_diff = Hi - math.log(perplexity)
@@ -59,19 +58,22 @@ local function x2p(data, perplexity, tol)
       end
 
       -- recompute row of P and correponding perplexity:
-      row_P:copy(buf[n])
-      n_buf:copy(buf[n])
+      row_P:copy(D[n])
+      row_D:copy(D[n])
       row_P:mul(-beta):exp()
-      row_P[n] = 0
-      sum_P = row_P:sum()
-      Hi = math.log(sum_P) + beta / (sum_P + eps) * n_buf:cmul(row_P):sum()
-      row_P:div(sum_P)
+      row_P[n][1] = 0
+      sum_P  = row_P:sum()
+      sum_DP = row_D:cmul(row_P):sum()
+      Hi = math.log(sum_P) + beta * sum_DP / sum_P
+      
+      -- update error:
       H_diff = Hi - math.log(perplexity)
       tries = tries + 1
     end
 
     -- set the final row of P:
-    P:narrow(1, n, 1):copy(row_P)
+    row_P:div(sum_P)
+    P[n]:copy(row_P)
   end
 
   -- return output:
@@ -204,11 +206,10 @@ local function tsne(data, opts)
   -- first do PCA:
   local N = data:size(1)
   local D = data:size(2)
-  local lambda,W
   if pca_dims then
     require 'unsup'
     print('Performing preprocessing using PCA...')
-    lambda,W = unsup.pca(data)
+    local lambda,W = unsup.pca(data)
     W = W:narrow(2, 1, math.min(pca_dims, D))
     data = torch.mm(data, W)
   end
@@ -223,26 +224,27 @@ local function tsne(data, opts)
   local momentum = 0.5
   local final_momentum = 0.8
   local mom_switch_iter = 250
-  local stop_lying_iter = 100
+  local stop_lying_iter = 200
   local max_iter = 1000
   local epsilon = 500
   local min_gain = 0.01
   local eps = 1e-12
 
   -- allocate all the memory we need:
-  local buf   = torch.Tensor(N, N)
-  local num   = torch.Tensor(N, N)
-  local Q     = torch.Tensor(N, N)
-  local y_buf = torch.Tensor(N, no_dims)
-  local n_buf = torch.Tensor(N, 1)
+  local buf   = torch.DoubleTensor(N, N)
+  local num   = torch.DoubleTensor(N, N)
+  local Q     = torch.DoubleTensor(N, N)
+  local y_buf = torch.DoubleTensor(N, no_dims)
+  local n_buf = torch.DoubleTensor(N, 1)
 
   -- compute (asymmetric) P-values:
   print('Computing P-values...')
-  local tol = 1e-5
+  local tol = 1e-4
   local P = x2p(data, perplexity, tol)
 
   -- symmetrize P-values:
-  P:add(P:t())
+  buf:copy(P)
+  P:add(buf:t())
   P:div(torch.sum(P))
 
   -- compute constant term in KL divergence:
@@ -255,7 +257,7 @@ local function tsne(data, opts)
 
   -- initialize the solution, gradient and momentum storage, and gain:
   local y_data = torch.randn(N, no_dims):mul(0.0001)
-  local y_grad = torch.Tensor(N, no_dims)
+  local y_grad = torch.DoubleTensor(N, no_dims)
   local y_incs = torch.zeros(N, no_dims)
   local y_gain = torch.ones(N, no_dims)
  
@@ -279,20 +281,23 @@ local function tsne(data, opts)
 
     -- compute the gradients:
     buf:copy(P)
-    buf:add(-1, Q)
+    buf:add(-Q)
     buf:cmul(num)
     torch.sum(n_buf, buf, 2)
     num:fill(0)
     for n = 1,N do
-      num[n][n] = n_buf[n]
+      num[n][n] = n_buf[n][1]
     end
-    torch.mm(y_grad, num:add(-1, buf), y_data)
+    num:add(-buf)
+    torch.mm(y_grad, num, y_data)
     y_grad:mul(4)
 
     -- update the solution:
-    y_gain:map2(y_grad, y_incs, function(gain, grad, incs) if sign(grad) ~= sign(incs) then return (gain + 0.2) else return (gain * 0.8) end end)
-    y_incs:mul(momentum):add(y_grad:cmul(y_gain):mul(-epsilon))
+    y_gain:map2(y_grad, y_incs, function(gain, grad, incs) if sign(grad) ~= sign(incs) then return (gain + 0.2) else return math.min(gain * 0.8, .01) end end)
+    y_incs:mul(momentum)
+    y_incs:addcmul(-epsilon, y_grad, y_gain)
     y_data:add(y_incs)
+    y_data:add(-torch.mean(y_data, 1):reshape(1, no_dims):expand(y_data:size()))
 
     -- update learning parameters if necessary:
     if iter == mom_switch_iter then

@@ -163,6 +163,43 @@ local function draw_image_map(X, images, inp_map_size, inp_background, inp_backg
   return map_im
 end
 
+-- function that draw text map:
+local function draw_text_map(X, words, inp_map_size, inp_font_size)
+  -- NOTE: This function assumes vocabulary is indexed by words, values indicate the index of a word into X!
+  
+  -- input options:
+  local map_size  = inp_map_size or 512
+  local font_size = inp_font_size or 9
+  
+  -- check inputs are correct:
+  local N = X:size(1)
+  if X:nDimension() ~= 2 or X:size(2) ~= 2 then
+    error('This function is designed to operate on 2D embeddings only.')
+  end
+  if X:size(1) ~= #words then
+    error('Number of words should match the number of rows in X.')
+  end
+  
+  -- prepare image for rendering:
+  require 'image'
+  require 'qtwidget'
+  require 'qttorch'
+  local win = qtwidget.newimage(map_size, map_size)
+  
+  --render the words:
+  for key,val in pairs(words) do
+    win:setfont(qt.QFont{serif = false, size = fontsize})
+    win:moveto(math.floor(X[val][1] * map_size), math.floor(X[val][2] * map_size))
+    win:show(key)
+  end
+  
+  -- render to tensor:
+  local map_im = win:image():toTensor()
+  
+  -- return text map:
+  return map_im
+end
+
 
 -- Package:
 return {
@@ -175,5 +212,6 @@ return {
    removeDuplicates = removeDuplicates,
    neighbors = neighbors,
    distances = distances,
-   draw_image_map = draw_image_map
+   draw_image_map = draw_image_map,
+   draw_text_map  = draw_text_map
 }
