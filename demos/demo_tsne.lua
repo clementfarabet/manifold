@@ -66,14 +66,14 @@ local function demo_tsne()
 
   -- run t-SNE:
   local timer = torch.Timer()
-  opts = {ndims = 2, perplexity = 30, pca = 100, use_bh = false}
-  mapped_x1 = manifold.embedding.tsne(x, opts)
+  opts = {ndims = 2, perplexity = 30, pca = 50, use_bh = false}
+  mapped_x1 = manifold.embedding.tsne(x, opts)      -- this implementation appears to perform worse than BH t-SNE with theta = 0
   print('Successfully performed t-SNE in ' .. timer:time().real .. ' seconds.')
   show_scatter_plot(mapped_x1, labels)
   show_map(mapped_x1, x:clone())
 
   -- run Barnes-Hut t-SNE:
-  opts = {ndims = 2, perplexity = 30, pca = 100, use_bh = true, theta = 0.5}
+  opts = {ndims = 2, perplexity = 30, pca = 50, use_bh = true, theta = 0.5}
   timer:reset()
   mapped_x2 = manifold.embedding.tsne(x, opts)
   print('Successfully performed Barnes Hut t-SNE in ' .. timer:time().real .. ' seconds.')
