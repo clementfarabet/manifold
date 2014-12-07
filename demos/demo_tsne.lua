@@ -70,7 +70,7 @@ local function demo_tsne()
   mapped_x1 = manifold.embedding.tsne(x, opts)
   print('Successfully performed t-SNE in ' .. timer:time().real .. ' seconds.')
   show_scatter_plot(mapped_x1, labels)
-  --show_map(mapped_x1, x:clone())
+  show_map(mapped_x1, x:clone())
 
   -- run Barnes-Hut t-SNE:
   opts = {ndims = 2, perplexity = 30, pca = 50, use_bh = true, theta = 0.5}
