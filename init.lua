@@ -102,6 +102,68 @@ local removeDuplicates = function(vectors)
    return matrix,oks
 end
 
+
+-- function that draws 2D map of images:
+local function draw_image_map(X, images, inp_map_size, inp_background, inp_background_removal)
+  
+  -- input options:
+  local map_size = inp_map_size or 512
+  local background = inp_background or 0
+  local background_removal = inp_background_removal or false
+  
+  -- check inputs are correct:
+  local N = X:size(1)
+  if X:nDimension() ~= 2 or X:size(2) ~= 2 then
+    error('This function is designed to operate on 2D embeddings only.')
+  end
+  if (type(images) ~= 'table' or X:size(1) ~= #images) and (torch.isTensor(images) == false or images:nDimension() ~= 4 or images:size(1) ~= N) then
+    error('Images should be specified as a list of filenames or as an NxCxHxW tensor.')
+  end
+  
+  -- prepare some variables:
+  local num_channels = 3
+  if torch.isTensor(images) then
+    num_channels = images:size(2)
+  end
+  local map_im = torch.DoubleTensor(num_channels, map_size, map_size):fill(background)
+  X = X:add(-X:min(1):expand(N, 2))
+  X = X:cdiv(X:max(1):expand(N, 2))
+  
+  -- fill map with images:
+  for n = 1,N do
+    
+    -- get current image:
+    local cur_im
+    if type(images) == 'table' then
+      cur_im = image.load(images[n])
+    else
+      cur_im = images[n]
+    end
+     
+    -- place current image:
+    local y_loc = 1 + math.floor(X[n][1] * (map_size - cur_im:size(2)))
+    local x_loc = 1 + math.floor(X[n][2] * (map_size - cur_im:size(3)))
+    if background_removal == false then     -- no background removal
+      map_im:sub(1, num_channels, y_loc, y_loc + cur_im:size(2) - 1,
+                                  x_loc, x_loc + cur_im:size(3) - 1):copy(cur_im)
+    else                                    -- background removal
+      for c = 1,num_channels do
+        for h = 1,cur_im:size(2) do
+          for w = 1,cur_im:size(3) do
+            if cur_im[c][h][w] ~= background then
+              map_im[c][y_loc + h - 1][x_loc + w - 1] = cur_im[c][h][w]
+            end
+          end
+        end
+      end     
+    end
+  end
+  
+  -- return map:  
+  return map_im
+end
+
+
 -- Package:
 return {
    embedding = {
@@ -113,4 +175,5 @@ return {
    removeDuplicates = removeDuplicates,
    neighbors = neighbors,
    distances = distances,
+   draw_image_map = draw_image_map
 }

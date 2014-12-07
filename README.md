@@ -38,6 +38,11 @@ Demos require [gfx.js](https://github.com/clementfarabet/gfx.js) to be installed
 
 ```sh
 cd demos
+th -x demo_swissroll.lua
 th -x demo_tsne.lua
 # (the -x flag starts the gfx server)
 ```
+
+Below is an example of a t-SNE map produced on 5,000 MNIST digits by the <code>demos/demo_tsne.lua</code> demo.
+
+![t-SNE map of 5,000 MNIST digits](images/tsne_map.png)
