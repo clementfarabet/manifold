@@ -206,11 +206,11 @@ local function tsne(data, opts)
   -- first do PCA:
   local N = data:size(1)
   local D = data:size(2)
-  if pca_dims then
+  if pca_dims and pca_dims < D then
     require 'unsup'
     print('Performing preprocessing using PCA...')
     local lambda,W = unsup.pca(data)
-    W = W:narrow(2, 1, math.min(pca_dims, D))
+    W = W:narrow(2, 1, pca_dims)
     data = torch.mm(data, W)
   end
 
