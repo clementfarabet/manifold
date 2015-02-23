@@ -104,7 +104,7 @@ end
 
 
 -- function that draws 2D map of images:
-local function draw_image_map(X, images, inp_map_size, inp_background, inp_background_removal)
+local function draw_image_map(inp_X, images, inp_map_size, inp_background, inp_background_removal)
   
   -- input options:
   local map_size = inp_map_size or 512
@@ -112,6 +112,7 @@ local function draw_image_map(X, images, inp_map_size, inp_background, inp_backg
   local background_removal = inp_background_removal or false
   
   -- check inputs are correct:
+  local X = inp_X:clone()
   local N = X:size(1)
   if X:nDimension() ~= 2 or X:size(2) ~= 2 then
     error('This function is designed to operate on 2D embeddings only.')
