@@ -107,21 +107,6 @@ local function run_bhtsne(data, opts)
   ]]
   local tsneLib = ffi.load(package.searchpath('libmanifold', package.cpath))
   
-  -- load t-sne library:
-  --[[local ok = pcall(function() tsneLib = ffi.load('manifold') end)
-  if not ok then
-    ok = pcall(function() tsneLib = ffi.load('libmanifold.so') end)
-  end
-  if not ok then
-    ok = pcall(function() tsneLib = ffi.load('libmanifold.so.2') end)
-  end
-  if not ok then
-    ok = pcall(function() tsneLib = ffi.load('libmanifold.dylib') end)
-  end
-  if not ok then
-    error('Could not find libmanifold.')
-  end]]--
-  
   -- run t-SNE:
   local N = data:size(1)
   local D = data:size(2)
