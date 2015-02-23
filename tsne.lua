@@ -91,101 +91,34 @@ local function sign(x)
 end
 
 
--- function that runs the Barnes-Hut SNE executable:
+-- function that runs the C++ implementation of Barnes-Hut SNE:
 local function run_bhtsne(data, opts)
 
-   -- default values:
-   local ffi = require 'ffi'
-   opts = opts or {}
-   local no_dims    = opts.ndims      or 2
-   local perplexity = opts.perplexity or 30
-   local theta      = opts.theta      or 0.5
-
-   -- pack data:
-   local raw = data:data()
-   local nchars = data:nElement()*8 + 2*8 + 3*4
-   local data_char = ffi.new('char[?]', nchars)
-   local data_int = ffi.cast('int *', data_char)
-   local data_double = ffi.cast('double *', data_char + 2*4)
-   local data_int2 = ffi.cast('int *', data_char + 2*4 + 2*8)
-   local data_double2 = ffi.cast('double *', data_char + 3*4 + 2*8)
-   data_int[0] = data:size(1)
-   data_int[1] = data:size(2)
-   data_double[0] = ffi.cast('double',theta)
-   data_double[1] = ffi.cast('double',perplexity)
-   data_int2[0] = no_dims
-   ffi.copy(data_double2, raw, data:nElement() * 8)
-
-   -- pack argument
-   local packed = ffi.string(data_char, nchars)
-   local f = io.open('data.dat','w')
-   f:write(packed)
-   f:close()
-
-   -- exec:
-   local cmd
-   -- TODO: we should prepend the exact install path to thee binaries
-   if ffi.os == 'OSX' then
-      cmd = 'bhtsne_maci'
-   else
-      cmd = 'bhtsne_linux'
-   end
-
-   -- run:
-   os.execute(cmd)
-
-   -- read result:
-   local f = io.open('result.dat','r')
-   local res = f:read('*all')
-   local data_int = ffi.cast('int *', res)
-   local n = data_int[0]
-   local nd = data_int[1]
-   local data_next = data_int + 2
-
-   -- clear files:
-   os.remove('data.dat')
-   os.remove('result.dat')
+  -- default values:
+  local ffi = require 'ffi'
+  local opts = opts or {}
+  local no_dims    = opts.ndims      or 2
+  local perplexity = opts.perplexity or 30
+  local theta      = opts.theta      or 0.5
   
-   -- data?
-   local odata,lm,costs
-   if n == 0 then
-      -- no data (error?)
-      print('no data found in embedding')
-      return
-   else
-      -- data:
-      odata = torch.DoubleTensor(n,nd):zero()
-      local rp = odata:data()
-      local data_double = ffi.cast('double *', data_next)
-      ffi.copy(rp, data_double, n*nd*8)
-      local data_next = data_double + n*nd
-
-      -- next vector:
-      lm = torch.IntTensor(n)
-      local rp = lm:data()
-      local data_int = ffi.cast('int *', data_next)
-      ffi.copy(rp, data_int, n*4)
-      local data_next = data_int + n
-      lm:add(1)
-      
-      -- next vector:
-      costs = torch.DoubleTensor(n):zero()
-      local rp = costs:data()
-      local data_double = ffi.cast('double *', data_next)
-      ffi.copy(rp, data_double, n*8)
-   end
-
-   -- re-order:
-   if landmarks == 1 then
-      local odatar = odata:clone():zero()
-      for i = 1,lm:size(1) do
-         odatar[lm[i]] = odata[i]
-      end
-      odata = odatar
-   end
-
-  -- return mapped data:
-  return odata
+  -- define t-sne function and load t-sne library:
+  ffi.cdef[[
+    void run(double* X, int N, int D, double* Y, int no_dims, double perplexity, double theta);
+  ]]
+  local tsneLib = ffi.load(package.searchpath('libmanifold', package.cpath))
+  
+  -- run t-SNE:
+  local N = data:size(1)
+  local D = data:size(2)
+  local cmap = ffi.new("double[?]", N * opts.ndims)
+  tsneLib.run(torch.data(data:contiguous(), false), N, D, cmap, opts.ndims, opts.perplexity, opts.theta)
+  
+  -- bring back result to torch:
+  local map = torch.DoubleTensor(data:size(1), opts.ndims)
+  ffi.copy(map:data(), cmap, map:nElement() * 8)
+  
+  -- return result:
+  return map
 end
 
 

@@ -1,5 +1,7 @@
 -- Deps:
 require 'torch'
+require 'sys'
+
 
 -- Random projections:
 local random = function(vectors,opts)
@@ -164,12 +166,13 @@ local function draw_image_map(inp_X, images, inp_map_size, inp_background, inp_b
   return map_im
 end
 
--- function that draw text map:
+
+-- function that draw text map (requires qtlua):
 local function draw_text_map(X, words, inp_map_size, inp_font_size)
   -- NOTE: This function assumes vocabulary is indexed by words, values indicate the index of a word into X!
   
   -- input options:
-  local map_size  = inp_map_size or 512
+  local map_size  = inp_map_size or 1024
   local font_size = inp_font_size or 9
   
   -- check inputs are correct:
@@ -177,18 +180,29 @@ local function draw_text_map(X, words, inp_map_size, inp_font_size)
   if X:nDimension() ~= 2 or X:size(2) ~= 2 then
     error('This function is designed to operate on 2D embeddings only.')
   end
-  if X:size(1) ~= #words then
+  local num_words = 0
+  for _,_ in pairs(words) do
+    num_words = num_words + 1
+  end  
+  if X:size(1) ~= num_words then
     error('Number of words should match the number of rows in X.')
   end
+  
+  -- normalize the embedding:
+  X = X:add(-X:min(1):expand(N, 2))
+  X = X:cdiv(X:max(1):expand(N, 2))
   
   -- prepare image for rendering:
   require 'image'
   require 'qtwidget'
   require 'qttorch'
   local win = qtwidget.newimage(map_size, map_size)
+  win:setcolor{r = 1, g = 1, b = 1}
+  win:rectangle(1, map_size, 1, map_size)
   
   --render the words:
   for key,val in pairs(words) do
+    win:setcolor{r = 0, g = 0, b = 0}
     win:setfont(qt.QFont{serif = false, size = fontsize})
     win:moveto(math.floor(X[val][1] * map_size), math.floor(X[val][2] * map_size))
     win:show(key)
