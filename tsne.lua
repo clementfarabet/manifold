@@ -97,7 +97,7 @@ local function run_bhtsne(data, opts)
    -- default values:
    local ffi = require 'ffi'
    opts = opts or {}
-   local no_dims    = opts.ndims      or 2
+   local no_dims    = opts.dim        or 2
    local perplexity = opts.perplexity or 30
    local theta      = opts.theta      or 0.5
 
@@ -194,7 +194,7 @@ local function tsne(data, opts)
 
   -- options:
   opts = opts or {}
-  local no_dims    = opts.ndims      or 2
+  local no_dims    = opts.dim        or 2
   local perplexity = opts.perplexity or 30
   local use_bh     = opts.use_bh     or false
   local pca_dims   = opts.pca        or (use_bh and 100) or nil
