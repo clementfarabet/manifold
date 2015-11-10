@@ -59,8 +59,7 @@ local function demo_tsne()
   testset.size  = N
   testset.data  = testset.data:narrow(1, 1, N)
   testset.label = testset.label:narrow(1, 1, N)
-  local x = torch.Tensor(testset.data:size())
-  x:map(testset.data, function(xx, yy) return yy end)
+  local x = torch.DoubleTensor(testset.data:size()):copy(testset.data)
   x:resize(x:size(1), x:size(2) * x:size(3))
   local labels = testset.label
 
