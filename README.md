@@ -10,6 +10,17 @@ Install
 luarocks install manifold
 ```
 
+Dependencies
+------------
+
+In order to be able to run the binaries, you need to install the package `libatlas3-base`.
+On a Ubuntu machine you can execute the following commands.
+
+```
+sudo apt-get update
+sudo apt-get install libatlas3-base
+```
+
 Use
 ---
 
@@ -34,13 +45,12 @@ p = m.embedding.tsne(t, {dim=2, perplexity=30})  -- embed samples into a 2D plan
 Demos
 -----
 
-Demos require [gfx.js](https://github.com/clementfarabet/gfx.js) to be installed.
+To run the demos, simply type the following commands.
 
 ```sh
 cd demos
-th -x demo_swissroll.lua
-th -x demo_tsne.lua
-# (the -x flag starts the gfx server)
+qlua demo_swissroll.lua
+qlua demo_tsne.lua
 ```
 
 Below is an example of a t-SNE map produced on 5,000 MNIST digits by the <code>demos/demo_tsne.lua</code> demo.
