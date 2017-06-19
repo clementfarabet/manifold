@@ -316,7 +316,7 @@ local function tsne(data, opts)
   end
 
   -- return output data:
-  return y_data
+  return y_data, kl
 end
 
 -- return function:
