@@ -314,9 +314,13 @@ local function tsne(data, opts)
       print('Iteration ' .. iter .. ': KL divergence is ' .. kl)
     end
   end
+  
+  -- Compute the ending KL divergence
+  Q:add(eps):log()
+  local kl = H_P - torch.sum(Q:cmul(P))
 
-  -- return output data:
-  return y_data
+  -- return output data and kl divergence
+  return y_data, kl
 end
 
 -- return function:
